@@ -2,8 +2,10 @@ package sk_ukf.demo.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import sk_ukf.demo.dao.EmployeeRepository;
 import sk_ukf.demo.entity.Employee;
+import sk_ukf.demo.exception.ObjectNotFoundException;
 
 import java.util.List;
 
@@ -23,16 +25,22 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public Employee findById(Integer id) {
-        return employeeRepository.findById(id).orElse(null);
+        return employeeRepository.findById(id)
+                .orElseThrow(() -> new ObjectNotFoundException("Zamestnanec", id));
     }
 
+    @Transactional
     @Override
     public Employee save(Employee employee) {
         return employeeRepository.save(employee);
     }
 
+    @Transactional
     @Override
     public void deleteById(Integer id) {
+        if (!employeeRepository.existsById(id)) {
+            throw new ObjectNotFoundException("Zamestnanec", id);
+        }
         employeeRepository.deleteById(id);
     }
 }

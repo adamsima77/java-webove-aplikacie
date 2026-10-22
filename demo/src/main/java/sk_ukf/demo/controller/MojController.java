@@ -1,115 +1,93 @@
 package sk_ukf.demo.controller;
 
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.RestController;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
+
 import sk_ukf.demo.entity.Employee;
 import sk_ukf.demo.entity.Student;
+import sk_ukf.demo.response.ResponseWrapper;
 import sk_ukf.demo.service.EmployeeService;
 import sk_ukf.demo.service.StudentService;
+import sk_ukf.demo.response.ResponseFactory;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
 public class MojController {
     private final StudentService studentService;
     private final EmployeeService employeeService;
+    private final ResponseFactory response;
 
-    @Autowired
-    public MojController(StudentService studentService, EmployeeService employeeService) {
+    public MojController(StudentService studentService, EmployeeService employeeService, ResponseFactory response) {
         this.studentService = studentService;
         this.employeeService = employeeService;
+        this.response = response;
     }
 
     @GetMapping("/students")
-    public List<Student> getAllStudents() {
-        return studentService.findAll();
-    }
-
-    @GetMapping("/employees")
-    public List<Employee> getAllEmployees() {
-        return employeeService.findAll();
+    public ResponseEntity<ResponseWrapper<List<Student>>> getAllStudents() {
+        return response.ok("Úspešne načítané", studentService.findAll());
     }
 
     @GetMapping("/students/{id}")
-    public Student getStudentById(@PathVariable Integer id) {
-        Student student = studentService.findById(id);
-        if (student == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Student id not found - " + id);
-        }
-        return student;
-    }
-
-    @GetMapping("/employees/{id}")
-    public Employee getEmployeeById(@PathVariable Integer id) {
-        Employee employee = employeeService.findById(id);
-        if (employee == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee id not found - " + id);
-        }
-        return employee;
+    public ResponseEntity<ResponseWrapper<Student>> getStudentById(@PathVariable Integer id) {
+        return response.ok("Študent úspešne nájdený", studentService.findById(id));
     }
 
     @PostMapping("/students")
-    @ResponseStatus(HttpStatus.CREATED)
-    public Student createStudent(@RequestBody Student student) {
+    public ResponseEntity<ResponseWrapper<Student>> createStudent(@Valid @RequestBody Student student) {
         student.setId(null);
-        return studentService.save(student);
-    }
-
-    @PostMapping("/employees")
-    @ResponseStatus(HttpStatus.CREATED)
-    public Employee createEmployee(@RequestBody Employee employee) {
-        employee.setId(null);
-        return employeeService.save(employee);
+        return response.success(HttpStatus.CREATED, "Študent bol úspešne vytvorený", studentService.save(student));
     }
 
     @PutMapping("/students/{id}")
-    public Student updateStudent(@PathVariable Integer id, @RequestBody Student student) {
-        Student existingStudent = studentService.findById(id);
-        if (existingStudent == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Student id not found - " + id);
-        }
+    public ResponseEntity<ResponseWrapper<Student>> updateStudent(@PathVariable Integer id, @Valid @RequestBody Student student) {
+        studentService.findById(id);
         student.setId(id);
-        return studentService.save(student);
-    }
-
-    @PutMapping("/employees/{id}")
-    public Employee updateEmployee(@PathVariable Integer id, @RequestBody Employee employee) {
-        Employee existingEmployee = employeeService.findById(id);
-        if (existingEmployee == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee id not found - " + id);
-        }
-        employee.setId(id);
-        return employeeService.save(employee);
+        return response.ok("Študent úspešne aktualizovaný", studentService.save(student));
     }
 
     @DeleteMapping("/students/{id}")
-    public Map<String, String> deleteStudent(@PathVariable Integer id) {
-        Student student = studentService.findById(id);
-        if (student == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Student id not found - " + id);
-        }
+    public ResponseEntity<ResponseWrapper<Void>> deleteStudent(@PathVariable Integer id) {
         studentService.deleteById(id);
-        return Map.of("message", "Deleted student id - " + id);
-    }
-
-    @DeleteMapping("/employees/{id}")
-    public Map<String, String> deleteEmployee(@PathVariable Integer id) {
-        Employee employee = employeeService.findById(id);
-        if (employee == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee id not found - " + id);
-        }
-        employeeService.deleteById(id);
-        return Map.of("message", "Deleted employee id - " + id);
+        return response.success(HttpStatus.OK, "Deleted student id - " + id, null);
     }
 
     @GetMapping("/students/search")
-    public List<Student> searchStudents(@RequestParam String firstName, @RequestParam String lastName) {
-        return studentService.findByFirstNameAndLastName(firstName, lastName);
+    public ResponseEntity<ResponseWrapper<List<Student>>> searchStudents(@RequestParam String firstName, @RequestParam String lastName) {
+        return response.success(HttpStatus.OK, "Students found successfully", studentService.findByFirstNameAndLastName(firstName, lastName));
+    }
+
+
+    @GetMapping("/employees")
+    public ResponseEntity<ResponseWrapper<List<Employee>>> getAllEmployees() {
+        return response.ok("Zamestnanci úspešne načítaní", employeeService.findAll());
+    }
+
+    @GetMapping("/employees/{id}")
+    public ResponseEntity<ResponseWrapper<Employee>> getEmployeeById(@PathVariable Integer id) {
+        return response.ok("Zamestnanec úspešne nájdený", employeeService.findById(id));
+    }
+
+    @PostMapping("/employees")
+    public ResponseEntity<ResponseWrapper<Employee>> createEmployee(@Valid @RequestBody Employee employee) {
+        employee.setId(null);
+        return response.success(HttpStatus.CREATED, "Zamestnanec bol úspešne vytvorený", employeeService.save(employee));
+    }
+
+    @PutMapping("/employees/{id}")
+    public ResponseEntity<ResponseWrapper<Employee>> updateEmployee(@PathVariable Integer id, @Valid @RequestBody Employee employee) {
+        employeeService.findById(id);
+        employee.setId(id);
+        return response.ok("Zamestnanec úspešne aktualizovaný", employeeService.save(employee));
+    }
+
+    @DeleteMapping("/employees/{id}")
+    public ResponseEntity<ResponseWrapper<Void>> deleteEmployee(@PathVariable Integer id) {
+        employeeService.deleteById(id);
+        return response.success(HttpStatus.OK, "Deleted employee id - " + id, null);
     }
 }
